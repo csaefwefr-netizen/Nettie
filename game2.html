@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文学习大挑战 - 春节篇</title>
+    <style>
+        :root {
+            --primary: #FF9A9E; 
+            --secondary: #FECFEF;
+            --accent: #A18CD1;
+            --bg: #F0F4F8;
+            --text: #333333;
+            --white: #FFFFFF;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            font-size: 20px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; 
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px; 
+            margin-bottom: 10px;
+        }
+        
+        .tool-btn {
+            background: var(--secondary);
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: 0.3s;
+            min-width: 100px;
+        }
+        .tool-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        h1 { font-size: 2.2em; text-align: center; color: var(--accent); margin-bottom: 0.5em; }
+        h2 { font-size: 1.8em; color: var(--primary); margin-bottom: 0.8em; text-align: center; }
+        
+        .btn {
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 15px 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        input[type="text"] {
+            padding: 15px;
+            font-size: 1.5em;
+            border-radius: 15px;
+            border: 3px solid var(--secondary);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px dashed var(--secondary);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .progress-container {
+            height: 15px;
+            background-color: #eee;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .match-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .match-card {
+            background: var(--white);
+            border: 2px solid var(--secondary);
+            padding: 10px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            min-height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            line-height: 1.2;
+        }
+        .match-card.selected { background: var(--accent); color: white; border-color: var(--accent); }
+        /* 选中时强制让里面的拼音也变白，保持对比度 */
+        .match-card.selected span { color: white !important; }
+        .match-card.matched { visibility: hidden; opacity: 0; }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .option-btn {
+            background: white;
+            border: 3px solid var(--primary);
+            color: var(--text);
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+            white-space: normal;
+        }
+        .option-btn:hover { background: var(--secondary); }
+
+        .hint-text { font-size: 1.8em; font-weight: bold; color: var(--accent); text-align: center; margin: 10px 0; }
+        .pinyin-hint { font-size: 1.4em; color: var(--primary); margin-top: 15px; text-align: center; }
+        
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 1.6em; }
+            .match-grid { gap: 8px; }
+            .match-card { font-size: 0.85em; padding: 6px; min-height: 45px; }
+        }
+
+        .hidden { display: none; }
+        .fade-in { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top-bar">
+        <button class="tool-btn" onclick="toggleLang()" id="global-lang-btn">转繁体</button>
+    </div>
+
+    <!-- 登录界面 -->
+    <div id="login-screen" class="fade-in" style="text-align: center; padding: 40px 0;">
+        <h1 id="ui-welcome-title">中文学习大挑战 - 春节篇</h1>
+        <p id="ui-enter-name-desc">请输入你的名字开始游戏</p>
+        <input type="text" id="nickname" placeholder="输入名字">
+        <button class="btn" onclick="startGame()" id="ui-start-btn">开始挑战</button>
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div id="game-interface" class="hidden">
+        <div class="game-header">
+            <div>👤 <span id="display-name">Player</span></div>
+            <div>⭐ <span id="score" style="color:var(--primary); font-size:1.4em;">0</span> <span id="ui-score-unit">分</span></div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+        <div id="game-stage"></div>
+    </div>
+</div>
+
+<script>
+    // --- 1. 数据准备 ---
+    const vocabData = [
+        { id: 1, zh: "春节", en: "spring festival", pinyin: "chūn jié" },
+        { id: 2, zh: "快到了", en: "arriving soon", pinyin: "kuài dào le" },
+        { id: 3, zh: "过年", en: "celebrate Chinese New Year", pinyin: "guò nián" },
+        { id: 4, zh: "团圆", en: "reunion", pinyin: "tuán yuán" },
+        { id: 5, zh: "属龙", en: "Zodiac year of birth is dragon", pinyin: "shǔ lóng" },
+        { id: 6, zh: "本命年", en: "Zodiac year of birth", pinyin: "běn mìng nián" },
+        { id: 7, zh: "告诉", en: "tell", pinyin: "gào sù" },
+        { id: 8, zh: "好运气", en: "Good luck", pinyin: "hǎo yùn qì" },
+        { id: 9, zh: "写信", en: "write a letter", pinyin: "xiě xìn" },
+        { id: 10, zh: "祝", en: "to wish", pinyin: "zhù" }
+    ];
+
+    const quizData = [
+        { q: "什么节日快到了？", a: "中国春节" },
+        { q: "过年的时候，中国人会和家人做什么？", a: "团圆" },
+        { q: "Lisa是几年出生的？", a: "二零一二年" },
+        { q: "Lisa的生肖是什么？", a: "Lisa属龙" },
+        { q: "Lisa属龙，今年又是龙年，所以今年是Lisa的什么年？", a: "本命年" },
+        { q: "朋友们给了Lisa什么？", a: "红色的衣服" },
+        { q: "朋友们为什么给Lisa红色的衣服？", a: "因为会有好运气" },
+        { q: "Lisa在给笑笑写什么呢？", a: "写信" }
+    ];
+
+    const allAnswers = quizData.map(item => item.a);
+
+    // --- 2. 繁简体全量字典 ---
+    const fullTradMap = {
+        "转繁体": "轉繁體", "转简体": "轉簡體", "中文学习大挑战 - 春节篇": "中文練習大挑戰 - 春節篇",
+        "请输入你的名字开始游戏": "請輸入你的名字開始遊戲", "输入名字": "輸入名字", "开始挑战": "開始挑戰", "分": "分",
+        "连连看": "連連看", "太棒了": "太棒了", "下一关": "下一關", "填空题": "填空題", "请输入中文": "請輸入中文",
+        "输入答案": "輸入答案", "提交": "提交", "提示": "提示", "拼音提示": "拼音提示", "正确": "正確", "错误": "錯誤", "不对哦": "不對哦",
+        "请使用简体输入": "請使用簡體輸入", "请使用繁体输入": "請使用繁體輸入", "阅读选择": "閱讀選擇", "挑战成功": "挑戰成功",
+        "你的最终得分": "你的最終得分", "再玩一次": "再玩一次",
+        "春节": "春節", "过年": "過年", "团圆": "團圓", "属龙": "屬龍", "告诉": "告訴", "好运气": "好運氣", "写信": "寫信",
+        "中国春节": "中國春節", "二零一二年": "二零一二年", "红色的衣服": "紅色的衣服", "因为会有好运气": "因為會有好運氣",
+        "什么时候": "什麼時候", "什么": "什麼", "为什么": "為什麼", "几年": "幾年"
+    };
+
+    // --- 3. 状态管理 ---
+    let state = {
+        nickname: "",
+        score: 0,
+        isTraditional: false,
+        gamePhase: 0, 
+        currentLevelIndex: 0,
+        matchSelected: null
+    };
+
+    // --- 4. 工具函数 ---
+    function t(text) {
+        if (!state.isTraditional) return text;
+        if (fullTradMap[text]) return fullTradMap[text];
+        let res = text;
+        for (let key in fullTradMap) {
+            res = res.replace(new RegExp(key, 'g'), fullTradMap[key]);
+        }
+        return res;
+    }
+
+    function toTradForce(text) {
+        let res = text;
+        for (let key in fullTradMap) {
+            res = res.replace(new RegExp(key, 'g'), fullTradMap[key]);
+        }
+        return res;
+    }
+
+    function toggleLang() {
+        state.isTraditional = !state.isTraditional;
+        document.getElementById('global-lang-btn').textContent = state.isTraditional ? "转简体" : "转繁体";
+        document.getElementById('ui-welcome-title').textContent = t("中文学习大挑战 - 春节篇");
+        document.getElementById('ui-enter-name-desc').textContent = t("请输入你的名字开始游戏");
+        document.getElementById('nickname').placeholder = t("输入名字");
+        document.getElementById('ui-start-btn').textContent = t("开始挑战");
+        document.getElementById('ui-score-unit').textContent = t("分");
+        if (!document.getElementById('game-interface').classList.contains('hidden')) {
+            loadPhase(state.gamePhase, false);
+        }
+    }
+
+    function startGame() {
+        const input = document.getElementById('nickname').value;
+        if (!input) return alert(t("请输入你的名字开始游戏"));
+        state.nickname = input;
+        document.getElementById('display-name').textContent = state.nickname;
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('game-interface').classList.remove('hidden');
+        loadPhase(0);
+    }
+
+    function updateScore(points) {
+        state.score += points;
+        document.getElementById('score').textContent = state.score;
+    }
+
+    function updateProgress(current, total, basePercentage) {
+        const stageProgress = (current / total) * 33.3;
+        document.getElementById('progress').style.width = (basePercentage + stageProgress) + "%";
+    }
+
+    // --- 5. 游戏逻辑 ---
+    function loadPhase(phase, resetIndex = true) {
+        state.gamePhase = phase;
+        if(resetIndex) state.currentLevelIndex = 0;
+        const stage = document.getElementById('game-stage');
+        stage.innerHTML = "";
+        stage.className = "fade-in";
+
+        if (phase === 0) startMatchingGame(stage);
+        else if (phase === 1) startFillGame(stage);
+        else if (phase === 2) startQuizGame(stage);
+        else showEndScreen(stage);
+    }
+
+    // 连连看
+    function startMatchingGame(container) {
+        container.innerHTML = `<h2>${t("连连看")}</h2><div class="match-grid" id="match-grid"></div>`;
+        let cards = [];
+        vocabData.forEach(item => {
+            cards.push({ type: 'zh', text: item.zh, pinyin: item.pinyin, id: item.id });
+            cards.push({ type: 'en', text: item.en, id: item.id });
+        });
+        cards.sort(() => Math.random() - 0.5);
+
+        const grid = document.getElementById('match-grid');
+        cards.forEach(card => {
+            const div = document.createElement('div');
+            div.className = 'match-card';
+            if (card.type === 'zh') {
+                // 拼音颜色改为黑色 (color: black)
+                div.innerHTML = `${t(card.text)}<br><span style="font-size:0.85em; color:black; font-weight:normal;">(${card.pinyin})</span>`;
+            } else {
+                div.textContent = card.text;
+            }
+            div.dataset.id = card.id;
+            div.onclick = (e) => handleMatchClick(e.target);
+            grid.appendChild(div);
+        });
+        updateProgress(0, vocabData.length, 0);
+    }
+
+    function handleMatchClick(el) {
+        while (el && !el.classList.contains('match-card')) {
+            el = el.parentElement;
+        }
+        if (!el || el.classList.contains('matched') || el.classList.contains('selected')) return;
+
+        el.classList.add('selected');
+        if (!state.matchSelected) {
+            state.matchSelected = el;
+        } else {
+            const first = state.matchSelected;
+            if (first.dataset.id === el.dataset.id) {
+                setTimeout(() => {
+                    first.classList.remove('selected'); el.classList.remove('selected');
+                    first.classList.add('matched'); el.classList.add('matched');
+                    updateScore(10);
+                    checkMatchEnd();
+                }, 300);
+            } else {
+                setTimeout(() => {
+                    first.classList.remove('selected'); el.classList.remove('selected');
+                }, 500);
+            }
+            state.matchSelected = null;
+        }
+    }
+
+    function checkMatchEnd() {
+        const remaining = document.querySelectorAll('.match-card:not(.matched)');
+        if (remaining.length === 0) {
+            setTimeout(() => { alert(t("太棒了") + "！" + t("下一关")); loadPhase(1); }, 500);
+        }
+    }
+
+    // 填空题
+    function startFillGame(container) {
+        const item = vocabData[state.currentLevelIndex];
+        updateProgress(state.currentLevelIndex, vocabData.length, 33);
+        container.innerHTML = `
+            <div style="text-align:center;">
+                <h2>${t("填空题")} (${state.currentLevelIndex + 1}/${vocabData.length})</h2>
+                <p>${t("请输入中文")}</p>
+                <div class="hint-text">${item.en}</div>
+                <input type="text" id="fill-input" placeholder="${t("输入答案")}">
+                <button class="btn" onclick="checkFillAnswer()">${t("提交")}</button>
+                <div id="pinyin-hint" class="pinyin-hint" style="display:none">
+                    💡 ${t("拼音提示")}: ${item.pinyin}
+                </div>
+                <div id="feedback" style="font-size:1.5em; font-weight:bold; margin-top:20px;"></div>
+            </div>
+        `;
+    }
+
+    function checkFillAnswer() {
+        const input = document.getElementById('fill-input').value.trim();
+        const baseCorrect = vocabData[state.currentLevelIndex].zh;
+        const tradCorrect = toTradForce(baseCorrect);
+        const expectedAnswer = state.isTraditional ? tradCorrect : baseCorrect;
+        const feedback = document.getElementById('feedback');
+
+        if (input === expectedAnswer) {
+            feedback.innerHTML = `<span style="color:#4CAF50">✅ ${t("正确")}！</span>`;
+            updateScore(10);
+            setTimeout(() => {
+                state.currentLevelIndex++;
+                if (state.currentLevelIndex < vocabData.length) startFillGame(document.getElementById('game-stage'));
+                else { alert(t("太棒了") + "！" + t("下一关")); loadPhase(2); }
+            }, 1000);
+        } else {
+            let msg = t("不对哦");
+            if (state.isTraditional && input === baseCorrect && baseCorrect !== tradCorrect) msg = t("请使用繁体输入");
+            else if (!state.isTraditional && input === tradCorrect && baseCorrect !== tradCorrect) msg = t("请使用简体输入");
+            feedback.innerHTML = `<span style="color:#F44336">❌ ${msg}</span>`;
+            document.getElementById('pinyin-hint').style.display = 'block';
+        }
+    }
+
+    // 选择题
+    function startQuizGame(container) {
+        const q = quizData[state.currentLevelIndex];
+        updateProgress(state.currentLevelIndex, quizData.length, 66);
+        let options = [q.a];
+        while (options.length < 4) {
+            const randomAns = allAnswers[Math.floor(Math.random() * allAnswers.length)];
+            if (!options.includes(randomAns)) options.push(randomAns);
+        }
+        options.sort(() => Math.random() - 0.5);
+        container.innerHTML = `
+            <div style="text-align:center;">
+                <h2>${t("阅读选择")} (${state.currentLevelIndex + 1}/${quizData.length})</h2>
+                <div style="font-size:1.4em; font-weight:bold; margin: 30px 0; text-align:left; background:#f9f9f9; padding:20px; border-radius:15px;">
+                    ${t(q.q)}
+                </div>
+                <div class="options-grid">
+                    ${options.map(opt => `<button class="option-btn" onclick="checkQuizAnswer('${opt}', '${q.a}', this)">${t(opt)}</button>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function checkQuizAnswer(selected, correct, btnElement) {
+        if (selected === correct) {
+            btnElement.style.background = "#d4edda";
+            updateScore(10);
+            setTimeout(() => {
+                state.currentLevelIndex++;
+                if (state.currentLevelIndex < quizData.length) startQuizGame(document.getElementById('game-stage'));
+                else loadPhase(3);
+            }, 500);
+        } else {
+            btnElement.style.background = "#f8d7da";
+            btnElement.disabled = true;
+        }
+    }
+
+    function showEndScreen(container) {
+        updateProgress(1, 1, 100);
+        container.innerHTML = `
+            <div style="text-align:center; padding-top:50px;">
+                <h1 style="font-size:3em;">🎉 ${t("挑战成功")}！</h1>
+                <p style="font-size:1.8em">${t("你的最终得分")}: <span style="color:var(--primary); font-weight:bold">${state.score}</span></p>
+                <button class="btn" onclick="location.reload()">${t("再玩一次")}</button>
+            </div>
+        `;
+    }
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中文学习大挑战 - 新朋友1</title>
+    <title>中文练习大挑战 - 新朋友1</title>
     <style>
         :root {
             --primary: #FF9A9E; 
@@ -185,7 +185,7 @@
 
     <!-- 登录界面 -->
     <div id="login-screen" class="fade-in" style="text-align: center; padding: 40px 0;">
-        <h1 id="ui-welcome-title">中文学习大挑战 - 新朋友1</h1>
+        <h1 id="ui-welcome-title">中文练习大挑战 - 新朋友1</h1>
         <p id="ui-enter-name-desc">请输入你的名字开始游戏</p>
         <input type="text" id="nickname" placeholder="输入名字">
         <button class="btn" onclick="startGame()" id="ui-start-btn">开始挑战</button>
@@ -273,7 +273,7 @@
     function toggleLang() {
         state.isTraditional = !state.isTraditional;
         document.getElementById('global-lang-btn').textContent = state.isTraditional ? "转简体" : "转繁体";
-        document.getElementById('ui-welcome-title').textContent = t("中文学习大挑战 - 新朋友1");
+        document.getElementById('ui-welcome-title').textContent = t("中文练习大挑战 - 新朋友1");
         document.getElementById('ui-enter-name-desc').textContent = t("请输入你的名字开始游戏");
         document.getElementById('nickname').placeholder = t("输入名字");
         document.getElementById('ui-start-btn').textContent = t("开始挑战");

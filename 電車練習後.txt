@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港電車歷史練習</title>
+    <style>
+        :root {
+            --primary-color: #6a8caf;
+            --primary-light: #f0f4f8;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --bg-color: #f7f9fc;
+            --white: #ffffff;
+            --success: #65b787;
+            --error: #d96c6c;
+        }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eeeeee;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .lang-btn {
+            background: none;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .lang-btn:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        /* Login Screen */
+        .login-screen {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .login-screen input {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 60%;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .login-screen input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #557596;
+        }
+
+        /* Match Screen */
+        .match-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .match-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .match-item {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+            background-color: var(--white);
+            line-height: 1.5;
+        }
+
+        .match-item:hover:not(.matched) {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .match-item.selected {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+            box-shadow: 0 0 10px rgba(106, 140, 175, 0.2);
+        }
+
+        .match-item.matched {
+            border-color: var(--success);
+            background-color: #eaf5ee;
+            color: #4a8a64;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        /* MCQ Screen */
+        .mcq-question {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .mcq-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mcq-option {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: var(--white);
+        }
+
+        .mcq-option:hover {
+            background-color: var(--primary-light);
+            border-color: var(--primary-color);
+        }
+
+        /* Toast Hint */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--error);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(217, 108, 108, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 1000;
+            font-weight: bold;
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .toast.success {
+            background-color: var(--success);
+            box-shadow: 0 4px 12px rgba(101, 183, 135, 0.4);
+        }
+
+        .student-name-display {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .section-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 id="app-title">香港電車歷史練習</h1>
+            <button class="lang-btn" onclick="toggleLanguage()" id="lang-btn">繁 / 简</button>
+        </div>
+
+        <div id="content-area">
+            <!-- 動態渲染區 -->
+        </div>
+    </div>
+
+    <script>
+        // --- 題庫與文本數據 ---
+        const data = {
+            tc: {
+                title: "香港電車歷史練習",
+                namePrompt: "請輸入您的名字以開始練習：",
+                startBtn: "開始練習",
+                nameAlert: "請先輸入名字！",
+                studentLabel: "同學：",
+                part1Title: "一、連連看",
+                part1Desc: "請先點選左側年份，再點選右側正確的事件進行配對。",
+                part2Title: "二、選擇題",
+                finishTitle: "恭喜完成！",
+                finishDesc: "您已順利完成所有練習題！",
+                hintPrefix: "提示：",
+                correctMsg: "正確！",
+                matchNextMsg: "連連看完成！即將進入選擇題...",
+                matchLeft:[
+                    { id: 1, text: "1965年", hint: "加了拖卡" },
+                    { id: 2, text: "1982年", hint: "拖卡停用" },
+                    { id: 3, text: "1972年", hint: "座位等級制度" },
+                    { id: 4, text: "1976年", hint: "一人控制模式" },
+                    { id: 5, text: "1986年", hint: "全面翻新" },
+                    { id: 6, text: "1989年", hint: "搬到屈地街" }
+                ],
+                matchRight:[
+                    { id: 3, text: "取消了座位等級制度" },
+                    { id: 6, text: "電車的車廠從銅鑼灣搬到屈地街，原來的地點變成了時代廣場" },
+                    { id: 1, text: "雙層電車後面加上了拖卡" },
+                    { id: 4, text: "開始實行一人控制模式" },
+                    { id: 2, text: "電車後面的拖卡全部停用了" },
+                    { id: 5, text: "電車進行全面翻新，包括將上層座位換成塑膠" }
+                ],
+                mcq:[
+                    { q: "1. 拖卡被電車公司定為甚麼等級的車廂？", options:["A. 二等車廂", "B. 頭等車廂", "C. 免費車廂", "D. 普通車廂"], ans: 1, hint: "頭等" },
+                    { q: "2. 為甚麼電車公司在1965年要加上拖卡？", options:["A. 為了減少噪音", "B. 為了滿足更多人的出行需求", "C. 為了讓電車跑得更快", "D. 為了方便車廠搬遷"], ans: 1, hint: "出行需求" },
+                    { q: "3. 文章用「沙丁魚罐頭」來比喻甚麼？", options:["A. 拖卡的外形", "B. 擠滿人的電車", "C. 電車的噪音", "D. 舊式火車的車廂"], ans: 1, hint: "擠滿" },
+                    { q: "4. 拖卡雖然很受歡迎，但最終在1982年全部停用的主要原因是甚麼？", options:["A. 乘客太少", "B. 座位等級制度取消", "C. 噪音問題很難解決", "D. 車廠搬到屈地街"], ans: 2, hint: "噪音" },
+                    { q: "5. 文章提到從1986年起，電車公司對電車做了全面翻新，其中包括甚麼具體改變？", options:["A. 把拖卡重新加上去", "B. 將上層座位換成塑膠", "C. 取消一人控制模式", "D. 把車廠搬回銅鑼灣"], ans: 1, hint: "塑膠" },
+                    { q: "6. 文章最後把今天的香港電車形容為「古老而珍貴的交通工具」，這句話最可能表達了作者的甚麼態度？", options:["A. 覺得電車已經過時，應該淘汰", "B. 對電車的歷史和價值感到懷念和珍惜", "C. 希望電車公司再引入拖卡", "D. 認為電車只適合年輕人乘坐"], ans: 1, hint: "珍惜" }
+                ]
+            },
+            sc: {
+                title: "香港电车历史练习",
+                namePrompt: "请输入您的名字以开始练习：",
+                startBtn: "开始练习",
+                nameAlert: "请先输入名字！",
+                studentLabel: "同学：",
+                part1Title: "一、连连看",
+                part1Desc: "请先点选左侧年份，再点选右侧正确的事件进行配对。",
+                part2Title: "二、选择题",
+                finishTitle: "恭喜完成！",
+                finishDesc: "您已顺利完成所有练习题！",
+                hintPrefix: "提示：",
+                correctMsg: "正确！",
+                matchNextMsg: "连连看完成！即将进入选择题...",
+                matchLeft:[
+                    { id: 1, text: "1965年", hint: "加了拖卡" },
+                    { id: 2, text: "1982年", hint: "拖卡停用" },
+                    { id: 3, text: "1972年", hint: "座位等级制度" },
+                    { id: 4, text: "1976年", hint: "一人控制模式" },
+                    { id: 5, text: "1986年", hint: "全面翻新" },
+                    { id: 6, text: "1989年", hint: "搬到屈地街" }
+                ],
+                matchRight:[
+                    { id: 3, text: "取消了座位等级制度" },
+                    { id: 6, text: "电车的车厂从铜锣湾搬到屈地街，原来的地点变成了时代广场" },
+                    { id: 1, text: "双层电车后面加上了拖卡" },
+                    { id: 4, text: "开始实行一人控制模式" },
+                    { id: 2, text: "电车后面的拖卡全部停用了" },
+                    { id: 5, text: "电车进行全面翻新，包括将上层座位换成塑胶" }
+                ],
+                mcq:[
+                    { q: "1. 拖卡被电车公司定为什么等级的车厢？", options:["A. 二等车厢", "B. 头等车厢", "C. 免费车厢", "D. 普通车厢"], ans: 1, hint: "头等" },
+                    { q: "2. 为什么电车公司在1965年要加上拖卡？", options:["A. 为了减少噪音", "B. 为了满足更多人的出行需求", "C. 为了让电车跑得更快", "D. 为了方便车厂搬迁"], ans: 1, hint: "出行需求" },
+                    { q: "3. 文章用“沙丁鱼罐头”来比喻什么？", options:["A. 拖卡的外形", "B. 挤满人的电车", "C. 电车的噪音", "D. 旧式火车的车厢"], ans: 1, hint: "挤满" },
+                    { q: "4. 拖卡虽然很受欢迎，但最终在1982年全部停用的主要原因是什么？", options:["A. 乘客太少", "B. 座位等级制度取消", "C. 噪音问题很难解决", "D. 车厂搬到屈地街"], ans: 2, hint: "噪音" },
+                    { q: "5. 文章提到从1986年起，电车公司对电车做了全面翻新，其中包括什么具体改变？", options:["A. 把拖卡重新加上去", "B. 将上层座位换成塑胶", "C. 取消一人控制模式", "D. 把车厂搬回铜锣湾"], ans: 1, hint: "塑胶" },
+                    { q: "6. 文章最后把今天的香港电车形容为“古老而珍贵的交通工具”，这句话最可能表达了作者的什么态度？", options:["A. 觉得电车已经过时，应该淘汰", "B. 对电车的历史和价值感到怀念和珍惜", "C. 希望电车公司再引入拖卡", "D. 认为电车只适合年轻人乘坐"], ans: 1, hint: "珍惜" }
+                ]
+            }
+        };
+
+        // --- 狀態變量 ---
+        let lang = 'tc'; 
+        let studentName = '';
+        let currentStep = 'login'; // login, match, mcq, done
+        
+        // Match 狀態
+        let selectedLeftId = null;
+        let matchedPairs =[];
+
+        // MCQ 狀態
+        let currentMcqIndex = 0;
+
+        // --- 核心函數 ---
+
+        function getDict() {
+            return data[lang];
+        }
+
+        function toggleLanguage() {
+            lang = lang === 'tc' ? 'sc' : 'tc';
+            document.getElementById('lang-btn').innerText = lang === 'tc' ? '繁 / 简' : '简 / 繁';
+            document.getElementById('app-title').innerText = getDict().title;
+            render();
+        }
+
+        function showToast(msg, isSuccess = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            if (isSuccess) {
+                toast.classList.add('success');
+            } else {
+                toast.classList.remove('success');
+            }
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // --- 渲染邏輯 ---
+
+        function render() {
+            const content = document.getElementById('content-area');
+            const dict = getDict();
+            
+            if (currentStep === 'login') {
+                content.innerHTML = `
+                    <div class="login-screen">
+                        <h2>${dict.namePrompt}</h2>
+                        <input type="text" id="student-name-input" placeholder="...">
+                        <br>
+                        <button class="btn" onclick="startExercise()">${dict.startBtn}</button>
+                    </div>
+                `;
+                // 保留已經輸入的名字
+                if(studentName) document.getElementById('student-name-input').value = studentName;
+            } 
+            else if (currentStep === 'match') {
+                let leftHtml = '';
+                let rightHtml = '';
+
+                dict.matchLeft.forEach(item => {
+                    const isMatched = matchedPairs.includes(item.id);
+                    const isSelected = selectedLeftId === item.id;
+                    let classes = 'match-item';
+                    if (isMatched) classes += ' matched';
+                    else if (isSelected) classes += ' selected';
+
+                    leftHtml += `<div class="${classes}" onclick="selectLeft(${item.id})">${item.text}</div>`;
+                });
+
+                dict.matchRight.forEach(item => {
+                    const isMatched = matchedPairs.includes(item.id);
+                    let classes = 'match-item';
+                    if (isMatched) classes += ' matched';
+
+                    rightHtml += `<div class="${classes}" onclick="selectRight(${item.id})">${item.text}</div>`;
+                });
+
+                content.innerHTML = `
+                    <div class="student-name-display">${dict.studentLabel} ${studentName}</div>
+                    <div class="section-title">${dict.part1Title}</div>
+                    <div class="section-desc">${dict.part1Desc}</div>
+                    <div class="match-container">
+                        <div class="match-col">${leftHtml}</div>
+                        <div class="match-col">${rightHtml}</div>
+                    </div>
+                `;
+            }
+            else if (currentStep === 'mcq') {
+                const qData = dict.mcq[currentMcqIndex];
+                let optionsHtml = '';
+                qData.options.forEach((opt, index) => {
+                    optionsHtml += `<div class="mcq-option" onclick="selectMcq(${index})">${opt}</div>`;
+                });
+
+                content.innerHTML = `
+                    <div class="student-name-display">${dict.studentLabel} ${studentName}</div>
+                    <div class="section-title">${dict.part2Title}</div>
+                    <div class="section-desc">進度： ${currentMcqIndex + 1} / ${dict.mcq.length}</div>
+                    <div class="mcq-question">${qData.q}</div>
+                    <div class="mcq-options">${optionsHtml}</div>
+                `;
+            }
+            else if (currentStep === 'done') {
+                content.innerHTML = `
+                    <div class="login-screen">
+                        <h2 style="color: var(--success);">${dict.finishTitle}</h2>
+                        <p>${studentName} ${dict.studentLabel.replace('：','')}，${dict.finishDesc}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- 交互邏輯 ---
+
+        function startExercise() {
+            const input = document.getElementById('student-name-input').value.trim();
+            if (!input) {
+                showToast(getDict().nameAlert);
+                return;
+            }
+            studentName = input;
+            currentStep = 'match';
+            render();
+        }
+
+        function selectLeft(id) {
+            if (matchedPairs.includes(id)) return;
+            selectedLeftId = id;
+            render();
+        }
+
+        function selectRight(rightId) {
+            if (matchedPairs.includes(rightId)) return;
+            
+            if (selectedLeftId === null) {
+                return; // 未選擇左側，無反應
+            }
+
+            const dict = getDict();
+            if (selectedLeftId === rightId) {
+                // 配對成功
+                matchedPairs.push(rightId);
+                selectedLeftId = null;
+                showToast(dict.correctMsg, true);
+                render();
+
+                // 檢查是否全對
+                if (matchedPairs.length === dict.matchLeft.length) {
+                    setTimeout(() => {
+                        showToast(dict.matchNextMsg, true);
+                        setTimeout(() => {
+                            currentStep = 'mcq';
+                            render();
+                        }, 1500);
+                    }, 500);
+                }
+            } else {
+                // 配對失敗，找出左側選項的關鍵詞提示
+                const leftItem = dict.matchLeft.find(item => item.id === selectedLeftId);
+                showToast(`❌ ${dict.hintPrefix}（${leftItem.hint}）`);
+                selectedLeftId = null;
+                render();
+            }
+        }
+
+        function selectMcq(selectedIndex) {
+            const dict = getDict();
+            const qData = dict.mcq[currentMcqIndex];
+
+            if (selectedIndex === qData.ans) {
+                // 答對
+                showToast(dict.correctMsg, true);
+                setTimeout(() => {
+                    currentMcqIndex++;
+                    if (currentMcqIndex >= dict.mcq.length) {
+                        currentStep = 'done';
+                    }
+                    render();
+                }, 1000);
+            } else {
+                // 答錯，給出關鍵詞提示
+                showToast(`❌ ${dict.hintPrefix}（${qData.hint}）`);
+            }
+        }
+
+        // 初始化
+        document.getElementById('app-title').innerText = getDict().title;
+        render();
+
+    </script>
+</body>
+</html>

@@ -6,8 +6,8 @@
     <title>香港電車歷史練習</title>
     <style>
         /* --------------------------------
-           温馨可爱风格 + 时间顺序回顾 + 手动进入 + 完成总结
-           (功能不变，增加总结回顾)
+           温馨可爱风格 + 时间顺序回顾 + 自动跳转 + 完成总结
+           (功能：配对完成自动进入选择题)
            -------------------------------- */
         :root {
             --primary-color: #e58c7c;          /* 暖粉 */
@@ -360,13 +360,6 @@
             color: #618b54;
         }
 
-        /* 手動進入選擇題的按鈕容器 */
-        .next-button-wrapper {
-            text-align: center;
-            margin-top: 30px;
-            margin-bottom: 10px;
-        }
-
         /* MCQ Screen */
         .mcq-question {
             font-size: 19px;
@@ -524,7 +517,7 @@
     </div>
 
     <script>
-        // --- 題庫與文本數據 (修改第二題D選項為「搬走」) ---
+        // --- 題庫與文本數據 (第二題D選項為「搬走」) ---
         const data = {
             tc: {
                 title: "香港電車歷史練習",
@@ -539,7 +532,7 @@
                 finishDesc: "您已順利完成所有練習題！",
                 hintPrefix: "提示：",
                 correctMsg: "正確！",
-                matchNextMsg: "連連看完成！",
+                matchNextMsg: "連連看完成！即將進入選擇題...",
                 matchLeft:[
                     { id: 1, text: "1965年", hint: "加了拖卡" },
                     { id: 2, text: "1982年", hint: "拖卡停用" },
@@ -558,7 +551,7 @@
                 ],
                 mcq:[
                     { q: "1. 拖卡被電車公司定為甚麼等級的車廂？", options:["A. 二等車廂", "B. 頭等車廂", "C. 免費車廂", "D. 普通車廂"], ans: 1, hint: "頭等" },
-                    { q: "2. 為甚麼電車公司在1965年要加上拖卡？", options:["A. 為了減少噪音", "B. 為了滿足更多人的出行需求", "C. 為了讓電車跑得更快", "D. 為了方便車廠搬走"], ans: 1, hint: "出行需求" },  // 改為搬走
+                    { q: "2. 為甚麼電車公司在1965年要加上拖卡？", options:["A. 為了減少噪音", "B. 為了滿足更多人的出行需求", "C. 為了讓電車跑得更快", "D. 為了方便車廠搬走"], ans: 1, hint: "出行需求" },
                     { q: "3. 文章用「沙丁魚罐頭」來比喻甚麼？", options:["A. 拖卡的外形", "B. 擠滿人的電車", "C. 電車的噪音", "D. 舊式火車的車廂"], ans: 1, hint: "擠滿" },
                     { q: "4. 拖卡雖然很受歡迎，但最終在1982年全部停用的主要原因是甚麼？", options:["A. 乘客太少", "B. 座位等級制度取消", "C. 噪音問題很難解決", "D. 車廠搬到屈地街"], ans: 2, hint: "噪音" },
                     { q: "5. 文章提到從1986年起，電車公司對電車做了全面翻新，其中包括甚麼具體改變？", options:["A. 把拖卡重新加上去", "B. 將上層座位換成塑膠", "C. 取消一人控制模式", "D. 把車廠搬回銅鑼灣"], ans: 1, hint: "塑膠" },
@@ -578,7 +571,7 @@
                 finishDesc: "您已顺利完成所有练习题！",
                 hintPrefix: "提示：",
                 correctMsg: "正确！",
-                matchNextMsg: "连连看完成！",
+                matchNextMsg: "连连看完成！即将进入选择题...",
                 matchLeft:[
                     { id: 1, text: "1965年", hint: "加了拖卡" },
                     { id: 2, text: "1982年", hint: "拖卡停用" },
@@ -597,7 +590,7 @@
                 ],
                 mcq:[
                     { q: "1. 拖卡被电车公司定为什么等级的车厢？", options:["A. 二等车厢", "B. 头等车厢", "C. 免费车厢", "D. 普通车厢"], ans: 1, hint: "头等" },
-                    { q: "2. 为什么电车公司在1965年要加上拖卡？", options:["A. 为了减少噪音", "B. 为了满足更多人的出行需求", "C. 为了让电车跑得更快", "D. 为了方便车厂搬走"], ans: 1, hint: "出行需求" },  // 改為搬走
+                    { q: "2. 为什么电车公司在1965年要加上拖卡？", options:["A. 为了减少噪音", "B. 为了满足更多人的出行需求", "C. 为了让电车跑得更快", "D. 为了方便车厂搬走"], ans: 1, hint: "出行需求" },
                     { q: "3. 文章用“沙丁鱼罐头”来比喻什么？", options:["A. 拖卡的外形", "B. 挤满人的电车", "C. 电车的噪音", "D. 旧式火车的车厢"], ans: 1, hint: "挤满" },
                     { q: "4. 拖卡虽然很受欢迎，但最终在1982年全部停用的主要原因是什么？", options:["A. 乘客太少", "B. 座位等级制度取消", "C. 噪音问题很难解决", "D. 车厂搬到屈地街"], ans: 2, hint: "噪音" },
                     { q: "5. 文章提到从1986年起，电车公司对电车做了全面翻新，其中包括什么具体改变？", options:["A. 把拖卡重新加上去", "B. 将上层座位换成塑胶", "C. 取消一人控制模式", "D. 把车厂搬回铜锣湾"], ans: 1, hint: "塑胶" },
@@ -643,12 +636,6 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 2500);
-        }
-
-        // 手動進入選擇題
-        function goToMcq() {
-            currentStep = 'mcq';
-            render();
         }
 
         // 輔助：生成時間線回顧HTML (用於match完成或done)
@@ -737,18 +724,11 @@
                     rightHtml += `<div class="${classes}" onclick="selectRight(${item.id})">${item.text}</div>`;
                 });
 
-                // 如果全部配對完成，產生回顧區塊 + 手動進入按鈕
+                // 如果全部配對完成，產生回顧區塊 (不再顯示手動按鈕)
                 let reviewHtml = '';
-                let nextButtonHtml = '';
                 
                 if (matchedPairs.length === dict.matchLeft.length) {
                     reviewHtml = generateTimelineReview(dict);
-                    const buttonText = lang === 'tc' ? '進入選擇題 🚋' : '进入选择题 🚋';
-                    nextButtonHtml = `
-                        <div class="next-button-wrapper">
-                            <button class="btn" onclick="goToMcq()">${buttonText}</button>
-                        </div>
-                    `;
                 }
 
                 content.innerHTML = `
@@ -760,7 +740,6 @@
                         <div class="match-col">${rightHtml}</div>
                     </div>
                     ${reviewHtml}
-                    ${nextButtonHtml}
                 `;
             }
             else if (currentStep === 'mcq') {
@@ -798,7 +777,7 @@
             }
         }
 
-        // --- 交互邏輯 ---
+        // --- 交互邏輯 (配對完成後自動跳轉) ---
         function startExercise() {
             const input = document.getElementById('student-name-input').value.trim();
             if (!input) {
@@ -830,9 +809,13 @@
                 showToast(dict.correctMsg, true);
                 render();
 
+                // 全部配對完成 → 自動跳轉到選擇題 (延時2秒讓學生看回顧)
                 if (matchedPairs.length === dict.matchLeft.length) {
                     showToast(dict.matchNextMsg, true);
-                    // 不再自動跳轉
+                    setTimeout(() => {
+                        currentStep = 'mcq';
+                        render();
+                    }, 2000); // 2秒後自動進入選擇題
                 }
             } else {
                 const leftItem = dict.matchLeft.find(item => item.id === selectedLeftId);

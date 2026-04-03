@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IAT｜AI教學 vs 傳統教學</title>
+
+  <!-- 引入 jsPsych v7 -->
+  <script src="https://unpkg.com/jspsych@7.3.3"></script>
+  <link href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css" rel="stylesheet" />
+  
+  <!-- 引入基礎插件 -->
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.2"></script>
+  
+  <!-- 引入全屏插件 -->
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+
+  <style>
+    /* === 全局样式 === */
+    body { 
+        background: #fff; 
+        color: #000; 
+        font-family: "Helvetica", "Arial", sans-serif; 
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden; 
+    }
+    
+    /* 指导语页面 */
+    .page { 
+        width: min(900px, 92vw); 
+        margin: 0 auto; 
+        font-size: 20px; 
+        line-height: 1.8; 
+        text-align: left; 
+        padding-top: 5vh;
+    }
+    .page p { 
+        text-indent: 2em; 
+        margin-bottom: 24px; 
+    }
+    
+    /* 关键词黑框 */
+    .kbd { 
+        display: inline-block; 
+        padding: 0px 8px; 
+        border: 2px solid #333; 
+        border-radius: 6px; 
+        font-weight: 700; 
+        background: #fdfdfd; 
+        margin: 0 2px;
+        text-indent: 0; 
+    }
+
+    /* 红色“或”字 */
+    .red-or {
+        color: #d00;
+        font-weight: bold;
+        margin: 0 4px;
+        text-indent: 0;
+        display: inline-block;
+    }
+
+    /* === IAT 界面布局 (Flexbox 垂直居中) === */
+    .iat-wrap { 
+        width: 90vw; 
+        height: 100vh; 
+        margin: 0 auto; 
+        display: flex;          
+        flex-direction: column; 
+    }
+    
+    /* 1. 顶部标签 (固定) */
+    .iat-top { 
+        flex: 0 0 auto; 
+        display: flex; 
+        justify-content: space-between; 
+        font-size: 28px; 
+        font-weight: 700; 
+        color: #000;
+        padding-top: 40px; 
+        padding-bottom: 10px;
+    }
+    
+    .iat-label { width: 45%; line-height: 1.3; }
+    .iat-label.left { text-align: left; }
+    .iat-label.right { text-align: right; }
+    
+    .top-key {
+        font-size: 32px;
+        display: inline; 
+        margin-right: 5px; 
+        color: #333;
+    }
+
+    /* 2. 中间区域 (垂直居中) */
+    .iat-main-area {
+        flex: 1; 
+        display: flex;
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center;     
+        margin-top: -60px;       
+    }
+    
+    /* 刺激词 */
+    .iat-center { 
+        text-align: center; 
+        font-size: 64px; 
+        font-weight: 700; 
+        color: #000; 
+    }
+    
+    /* 红叉 */
+    .err-box {
+        text-align: center;
+        height: 60px; 
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .err { 
+        font-size: 64px; 
+        font-weight: 900; 
+        color: #c11; 
+        line-height: 1;
+    }
+
+    /* 底部提示 */
+    .iat-hint {
+        text-align: center; 
+        font-size: 18px; 
+        color: #000;
+        visibility: hidden; 
+        height: 30px;
+    }
+    .iat-hint.visible { visibility: visible; }
+
+    /* 注视点 */
+    .fix { 
+        position: absolute; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        font-size: 60px; 
+    }
+
+    /* 输入框样式 */
+    .jspsych-survey-text-question input {
+        font-size: 24px;
+        padding: 10px;
+        border: 2px solid #333;
+        border-radius: 8px;
+        text-align: center;
+    }
+  </style>
+</head>
+<body></body>
+
+<script>
+/* =========================
+   1. 随机化设置
+========================= */
+const jsPsych = initJsPsych();
+
+// 0=相容先, 1=不相容先
+const condition = (Math.random() < 0.5) ? 0 : 1;
+
+/* =========================================================
+   2. 自定义插件：IAT Corrected (保持原有逻辑)
+========================================================= */
+class IatCorrectedPlugin {
+  constructor(jsPsych) {
+    this.jsPsych = jsPsych;
+  }
+
+  trial(display_element, trial) {
+    const fixation_ms = 250;
+    const correct_key = trial.correct_key;
+
+    display_element.innerHTML = `<div class="fix">+</div>`;
+
+    this.jsPsych.pluginAPI.setTimeout(() => {
+      
+      const startTime = performance.now(); 
+
+      const buildHtml = (showError) => `
+        <div class="iat-wrap">
+          <div class="iat-top">
+            <div class="iat-label left">${trial.left_label}</div>
+            <div class="iat-label right">${trial.right_label}</div>
+          </div>
+          
+          <div class="iat-main-area">
+              <div class="iat-center">${trial.stimulus}</div>
+              <div class="err-box">
+                ${showError ? '<div class="err">X</div>' : ''}
+              </div>
+              <div class="iat-hint ${showError ? 'visible' : ''}">
+                 請按另一個鍵更正錯誤
+              </div>
+          </div>
+        </div>
+      `;
+
+      display_element.innerHTML = buildHtml(false);
+
+      const afterFirstResponse = (info) => {
+        if (this.jsPsych.pluginAPI.compareKeys(info.key, correct_key)) {
+          endTrial({
+            rt: info.rt,              
+            first_rt: info.rt,        
+            correction_rt: null,      
+            wrong: false
+          });
+        } else {
+          display_element.innerHTML = buildHtml(true); 
+          
+          this.jsPsych.pluginAPI.getKeyboardResponse({
+            callback_function: (info2) => {
+              endTrial({
+                rt: info2.rt,         
+                first_rt: info.rt,    
+                correction_rt: info2.rt, 
+                wrong: true
+              });
+            },
+            valid_responses: [correct_key], 
+            rt_method: 'performance',
+            persist: false,
+            allow_held_key: false
+          });
+        }
+      };
+
+      const endTrial = (dataObj) => {
+        const total_duration = performance.now() - startTime;
+
+        display_element.innerHTML = '';
+        this.jsPsych.finishTrial({
+          rt: dataObj.rt,                     
+          correction_rt: dataObj.correction_rt, 
+          first_rt: dataObj.first_rt,         
+          total_time_from_start: total_duration, 
+          
+          correct: !dataObj.wrong,            
+          response: dataObj.wrong ? 'correction' : 'correct', 
+          stimulus: trial.stimulus,
+          block: trial.block,
+          trial_kind: trial.trial_kind,
+          subcat: trial.subcat,
+          participant_id: jsPsych.data.get().first().participant_id, 
+          condition: condition === 0 ? "Compatible-First" : "Incompatible-First"
+        });
+      };
+
+      this.jsPsych.pluginAPI.getKeyboardResponse({
+        callback_function: afterFirstResponse,
+        valid_responses:['f', 'j'],
+        rt_method: 'performance',
+        persist: false,
+        allow_held_key: false
+      });
+
+    }, fixation_ms);
+  }
+}
+IatCorrectedPlugin.info = {
+  name: "iat-corrected",
+  parameters: {
+    stimulus: { type: jsPsychModule.ParameterType.HTML_STRING, default: undefined },
+    left_label: { type: jsPsychModule.ParameterType.HTML_STRING, default: '' },
+    right_label: { type: jsPsychModule.ParameterType.HTML_STRING, default: '' },
+    correct_key: { type: jsPsychModule.ParameterType.KEY, default: undefined },
+    block: { type: jsPsychModule.ParameterType.STRING, default: '' },
+    trial_kind: { type: jsPsychModule.ParameterType.STRING, default: '' },
+    subcat: { type: jsPsychModule.ParameterType.STRING, default: '' }
+  }
+};
+
+/* =========================
+   3. 辅助函数 (已重写：精准平衡 & 限制同键)
+========================= */
+function page(html){
+  return {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `<div class="page">${html}</div>`,
+    choices: [' ']
+  };
+}
+
+function box(text) { return `<span class="kbd">${text}</span>`; }
+function redOr() { return `<span class="red-or">或</span>`; }
+
+function shuffle(array) {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex != 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
+// 【修改】精准数量抽样：均匀抽取补充，绝对保证数量 (例如40题各10个)
+function sampleExactItems(items, count) {
+  let result = [];
+  let pool =[];
+  while(result.length < count) {
+    if(pool.length === 0) pool = shuffle([...items]);
+    result.push(pool.pop());
+  }
+  return result;
+}
+
+// 【修改】序列生成：限制最多只能连续3次按同一个键
+function shuffleNoMoreThan(array, maxConsecutive) {
+  let bestArr = array;
+  for (let attempt = 0; attempt < 500; attempt++) {
+    let arr = shuffle([...array]);
+    let valid = true;
+    let count = 1;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].correct_key === arr[i - 1].correct_key) {
+        count++;
+        if (count > maxConsecutive) {
+          valid = false;
+          break;
+        }
+      } else {
+        count = 1;
+      }
+    }
+    if (valid) return arr;
+    bestArr = arr;
+  }
+  return bestArr;
+}
+
+function downloadCSV(csv, filename) {
+  const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+/* =========================
+   4. 词汇材料 & 键位逻辑
+========================= */
+const words_AI =['自動評分','智能白板','AI備課','AI授課','人機交互','AI個性化推薦'];
+const words_TR =['人工評分','粉筆黑板','人工備課','真人授課','師生互動','統一教材'];
+const words_Pos =['高效的','專注的','輕鬆的','方便的','省時的','省力的','容易的','有序的'];
+const words_Neg =['低效的','分心的','吃力的','麻煩的','耗時的','費力的','複雜的','混亂的'];
+
+const key_Pos = 'f';
+const key_Neg = 'j';
+let key_AI_B1, key_TR_B1;
+let txt_Left_B1, txt_Right_B1; 
+
+if (condition === 0) {
+  key_AI_B1 = 'f'; key_TR_B1 = 'j';
+  txt_Left_B1 = "AI教學"; txt_Right_B1 = "傳統教學";
+} else {
+  key_AI_B1 = 'j'; key_TR_B1 = 'f';
+  txt_Left_B1 = "傳統教學"; txt_Right_B1 = "AI教學";
+}
+
+const key_AI_B5 = (key_AI_B1 === 'f') ? 'j' : 'f';
+const key_TR_B5 = (key_TR_B1 === 'f') ? 'j' : 'f';
+const txt_Left_B5 = (txt_Left_B1 === "AI教學") ? "傳統教學" : "AI教學";
+const txt_Right_B5 = (txt_Right_B1 === "AI教學") ? "傳統教學" : "AI教學";
+
+/* =========================
+   5. 试次生成器 (已重写：满足严格要求)
+========================= */
+function makeLabel(keyChar, text) {
+  return `<span class="top-key">${keyChar.toUpperCase()}</span>：${text}`;
+}
+
+function createTrialObj(word, subcat, kind, correctKey, leftHtml, rightHtml, blockName) {
+  return {
+    stimulus: word, subcat: subcat, trial_kind: kind, correct_key: correctKey,
+    left_label: leftHtml, right_label: rightHtml, block: blockName
+  };
+}
+
+// Block 1 (单概念：各10题)
+function getTrials_B1() {
+  const l = makeLabel("F", txt_Left_B1);
+  const r = makeLabel("J", txt_Right_B1);
+  const count = 10;
+  const t_AI = sampleExactItems(words_AI, count).map(w => createTrialObj(w, "AI", "concept", key_AI_B1, l, r, "B1_Concept"));
+  const t_TR = sampleExactItems(words_TR, count).map(w => createTrialObj(w, "TRAD", "concept", key_TR_B1, l, r, "B1_Concept"));
+  return shuffleNoMoreThan([...t_AI, ...t_TR], 3);
+}
+
+// Block 2 (单属性：各10题)
+function getTrials_B2() {
+  const l = makeLabel("F", "積極詞彙");
+  const r = makeLabel("J", "消極詞彙");
+  const count = 10;
+  const t_Pos = sampleExactItems(words_Pos, count).map(w => createTrialObj(w, "POS", "attr", key_Pos, l, r, "B2_Attr"));
+  const t_Neg = sampleExactItems(words_Neg, count).map(w => createTrialObj(w, "NEG", "attr", key_Neg, l, r, "B2_Attr"));
+  return shuffleNoMoreThan([...t_Pos, ...t_Neg], 3);
+}
+
+// 联合阶段：精准各取 1/4，且严格交替 + 限制同键
+function getTrials_Combined(phase, nTrials, blockName) {
+  const curKeyAI = (phase === 1) ? key_AI_B1 : key_AI_B5;
+  const curKeyTR = (phase === 1) ? key_TR_B1 : key_TR_B5;
+  const isAIonF  = (curKeyAI === 'f');
+
+  let leftTxt, rightTxt;
+  if (isAIonF) {
+    leftTxt = "AI教學 或 積極詞彙"; rightTxt = "傳統教學 或 消極詞彙";
+  } else {
+    leftTxt = "傳統教學 或 積極詞彙"; rightTxt = "AI教學 或 消極詞彙";
+  }
+  
+  const l = makeLabel("F", leftTxt);
+  const r = makeLabel("J", rightTxt);
+  const countPerCat = Math.floor(nTrials / 4); // 比如40次，每个类就是精确的10个
+
+  const t_AI  = sampleExactItems(words_AI, countPerCat).map(w => createTrialObj(w, "AI", "combined", curKeyAI, l, r, blockName));
+  const t_TR  = sampleExactItems(words_TR, countPerCat).map(w => createTrialObj(w, "TRAD", "combined", curKeyTR, l, r, blockName));
+  const t_Pos = sampleExactItems(words_Pos, countPerCat).map(w => createTrialObj(w, "POS", "combined", key_Pos, l, r, blockName));
+  const t_Neg = sampleExactItems(words_Neg, countPerCat).map(w => createTrialObj(w, "NEG", "combined", key_Neg, l, r, blockName));
+
+  let bestSeq =[];
+  for(let attempt = 0; attempt < 500; attempt++) {
+    let seq =[];
+    let concepts = shuffle([...t_AI, ...t_TR]);
+    let attrs = shuffle([...t_Pos, ...t_Neg]);
+    
+    let conceptFirst = (Math.random() < 0.5);
+    let valid = true;
+    let keyCount = 0;
+    let lastKey = null;
+
+    for(let i = 0; i < nTrials; i++) {
+       let isConceptTurn = conceptFirst ? (i % 2 === 0) : (i % 2 !== 0);
+       let item = isConceptTurn ? concepts[Math.floor(i/2)] : attrs[Math.floor(i/2)];
+       seq.push(item);
+
+       if (item.correct_key === lastKey) {
+         keyCount++;
+         if (keyCount > 3) {
+           valid = false;
+           break;
+         }
+       } else {
+         keyCount = 1;
+         lastKey = item.correct_key;
+       }
+    }
+    if (valid) return seq; 
+    bestSeq = seq;
+  }
+  return bestSeq;
+}
+
+// Block 5 (反转概念：各10题)
+function getTrials_B5() {
+  const l = makeLabel("F", txt_Left_B5);
+  const r = makeLabel("J", txt_Right_B5);
+  const count = 10;
+  const t_AI = sampleExactItems(words_AI, count).map(w => createTrialObj(w, "AI", "concept", key_AI_B5, l, r, "B5_Reverse"));
+  const t_TR = sampleExactItems(words_TR, count).map(w => createTrialObj(w, "TRAD", "concept", key_TR_B5, l, r, "B5_Reverse"));
+  return shuffleNoMoreThan([...t_AI, ...t_TR], 3);
+}
+
+/* =========================
+   6. Timeline
+========================= */
+let timeline =[];
+
+// --- Part 1: 被试编号输入 ---
+const enter_id = {
+  type: jsPsychSurveyText,
+  questions:[
+    {prompt: "請輸入您的編號 (Participant ID):", required: true, name: 'pid'}
+  ],
+  on_finish: function(data){
+    const pid = data.response.pid;
+    jsPsych.data.addProperties({
+      participant_id: pid,
+      condition: condition === 0 ? "Compatible-First" : "Incompatible-First"
+    });
+  }
+};
+timeline.push(enter_id);
+
+// --- Part 1.5: 強制進入全屏 & 關閉輸入法警告 ---
+const enter_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+  message: `
+    <div class="page" style="text-align: center;">
+      <p>為了保證練習數據的準確性，本練習需要在<b>全螢幕模式</b>下進行。</p>
+      
+      <div style="background-color: #ffeaea; border: 2px solid #d00; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #d00; font-size: 24px; margin-top: 0;"><b>⚠️ 核心準備工作 ⚠️</b></p>
+          <p style="font-weight: bold; font-size: 20px;">請務必現在將您的鍵盤切換為【英文輸入狀態】<br>（或關閉中文拼音/注音輸入法）</p>
+          <p style="color: #555; font-size: 16px;">如果開啟了中文輸入法，您按下的按鍵將被系統攔截，導致練習卡住無法進行！</p>
+      </div>
+
+      <p>在練習過程中，請<b>不要切換到其他視窗</b>或<b>按 ESC 退出全螢幕</b>。<br>系統會在後台自動記錄您的切屏行為，若切屏次數過多，您的數據將作廢。</p>
+      <p>確認已切換為英文鍵盤後，請點擊下方按鈕進入全螢幕模式並開始練習。</p>
+    </div>
+  `,
+  button_label: '已切換英文輸入法，進入全螢幕'
+};
+timeline.push(enter_fullscreen);
+
+// --- Part 1.6: 強制英文鍵盤測試 ---
+const keyboard_test_f = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page" style="text-align: center;">
+      <h2>⌨️ 鍵盤狀態測試 ⌨️</h2>
+      <p>為了確保您的鍵盤已成功切換為英文輸入法，<br>請在鍵盤上按下字母 <span class="kbd">F</span> 鍵。</p>
+      <p style="color: #888; font-size: 16px;">(如果按下沒有反應，說明您仍在中文輸入法狀態，請按 Shift 鍵切換)</p>
+    </div>
+  `,
+  choices:['f', 'F'] 
+};
+
+const keyboard_test_j = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page" style="text-align: center;">
+      <h2>⌨️ 鍵盤狀態測試 ⌨️</h2>
+      <p>非常好！現在請按下字母 <span class="kbd">J</span> 鍵。</p>
+      <p style="color: #888; font-size: 16px;">(測試通過後將正式進入練習)</p>
+    </div>
+  `,
+  choices: ['j', 'J'] 
+};
+
+timeline.push(keyboard_test_f);
+timeline.push(keyboard_test_j);
+
+
+// --- Part 2: 指導語 & 練習 ---
+timeline.push(page(`
+  <p>歡迎參加本次練習！</p>
+  <p>這是一個詞彙分類速度練習，在接下來的練習中，你將完成一系列的詞彙分類任務，請根據每一部分的具體指導語認真完成。</p>
+  <p>請按空格鍵開始練習。</p>
+`));
+
+// Block 1
+timeline.push(page(`
+  <p>在接下來的練習中，屏幕中央將呈現一系列的詞彙。請判斷詞彙的種類，如果呈現的是${box(txt_Left_B1)}的詞彙請按${box('F')}鍵，如果是${box(txt_Right_B1)}的詞彙請按${box('J')}鍵，請又快又准地做出反應！</p>
+  <p>如果反應錯誤，屏幕上會出現X，請按另一個鍵更正錯誤。</p>
+  <p>明白上述指導語之後，請按空格鍵開始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B1()
+});
+
+// Block 2
+timeline.push(page(`
+  <p>在接下來的練習部分，屏幕中央將會呈現一係列的詞彙。請判斷詞彙的種類，如果呈現的是${box('積極詞彙')}請按${box('F')}鍵，如果呈現的是${box('消極詞彙')}請按${box('J')}鍵，請又快又准地做出反應！</p>
+  <p>如果反應錯誤，屏幕上會出現X，請按另一個鍵更正錯誤。</p>
+  <p>明白上述指導語之後，請按空格鍵開始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B2()
+});
+
+function getCombinedInstText(phase) {
+  const curKeyAI = (phase === 1) ? key_AI_B1 : key_AI_B5;
+  const leftConcept = (curKeyAI === 'f') ? "AI教學" : "傳統教學";
+  const rightConcept = (curKeyAI === 'f') ? "傳統教學" : "AI教學";
+  
+  const leftStr = box(leftConcept) + redOr() + box('積極詞彙');
+  const rightStr = box(rightConcept) + redOr() + box('消極詞彙');
+
+  return `
+    <p>在接下來的練習中，屏幕中央將會呈現一係列的詞彙。請判斷詞彙的種類，如果呈現的是${leftStr}請按${box('F')}鍵，如果呈現的是${rightStr}請按${box('J')}鍵，請又快又准地做出反應。</p>
+    <p>如果反應錯誤，屏幕上會出現X，請按另一個鍵更正錯誤。</p>
+  `;
+}
+
+// Block 3
+timeline.push(page(getCombinedInstText(1) + `<p>明白上述指導語之後，請按空格鍵開始。</p>`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(1, 20, "B3_Combined_Practice")
+});
+
+// Block 4
+timeline.push(page(getCombinedInstText(1) + `
+  <p>請注意本部分是正式練習，請認真完成。</p>
+  <p>明白上述指導語之後，請按空格鍵開始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(1, 40, "B4_Combined_Test")
+});
+
+// Block 5
+timeline.push(page(`
+  <p>在接下來的練習部分，屏幕中央將會呈現一係列的詞彙。請判斷詞詞彙的種類，如果呈現的是${box(txt_Left_B5)}詞彙請按${box('F')}鍵，如果呈現的是${box(txt_Right_B5)}詞彙請按${box('J')}鍵，請又快又准地做出反應！</p>
+  <p>如果反應錯誤，屏幕上會出現X，請按另一個鍵更正錯誤。</p>
+  <p>明白上述指導語之後，請按空格鍵開始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B5()
+});
+
+// Block 6
+timeline.push(page(getCombinedInstText(2) + `<p>明白上述指導語之後，請按空格鍵開始。</p>`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(2, 20, "B6_Combined_Practice")
+});
+
+// Block 7
+timeline.push(page(getCombinedInstText(2) + `
+  <p>請注意本部分是正式練習，請認真完成。</p>
+  <p>明白上述指導語之後，請按空格鍵開始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(2, 40, "B7_Combined_Test")
+});
+
+
+// --- 退出全螢幕 (練習結束時) ---
+const exit_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: false,
+  delay_after: 0
+};
+timeline.push(exit_fullscreen);
+
+
+// --- End & 下載數據 (記錄防作弊互動數據) ---
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page">
+      <p><b>練習結束</b></p>
+      <p>感謝您的參與。</p>
+      <p class="muted">按 <span class="kbd">空格</span> 下載數據。</p>
+    </div>
+  `,
+  choices: [' '],
+  on_finish: () => {
+    
+    // 獲取互動數據 (切屏、最小化等)
+    const interactionData = jsPsych.data.getInteractionData();
+    const blurCount = interactionData.filter({event: 'blur'}).count();
+    const exitFsCount = interactionData.filter({event: 'fullscreenexit'}).count();
+    
+    // 將作弊檢測數據寫入 CSV
+    jsPsych.data.addProperties({
+      blur_count: blurCount,
+      exit_fullscreen_count: exitFsCount
+    });
+
+    const data = jsPsych.data.get();
+    const pid = data.first().participant_id || "unknown";
+    const csv = data.csv();
+    downloadCSV(csv, `IAT_${pid}_cond${condition}.csv`);
+  }
+});
+
+jsPsych.run(timeline);
+</script>
+</html>

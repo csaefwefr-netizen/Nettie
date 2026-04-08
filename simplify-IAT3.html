@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IAT｜AI教学 vs 传统教学</title>
+
+  <!-- 引入 jsPsych v7 -->
+  <script src="https://unpkg.com/jspsych@7.3.3"></script>
+  <link href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css" rel="stylesheet" />
+  
+  <!-- 引入插件 -->
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.2"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+
+  <style>
+    /* === 全局样式 === */
+    body { 
+        background: #fff; 
+        color: #000; 
+        font-family: "Helvetica", "Arial", sans-serif; 
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden; 
+    }
+    
+    /* 指导语页面 */
+    .page { 
+        width: min(900px, 92vw); 
+        margin: 0 auto; 
+        font-size: 20px; 
+        line-height: 1.8; 
+        text-align: left; 
+        padding-top: 5vh;
+    }
+    .page p { 
+        text-indent: 2em; 
+        margin-bottom: 24px; 
+    }
+    
+    /* 关键词黑框 */
+    .kbd { 
+        display: inline-block; 
+        padding: 0px 8px; 
+        border: 2px solid #333; 
+        border-radius: 6px; 
+        font-weight: 700; 
+        background: #fdfdfd; 
+        margin: 0 2px;
+        text-indent: 0; 
+    }
+
+    /* 红色“或”字 */
+    .red-or {
+        color: #d00;
+        font-weight: bold;
+        margin: 0 4px;
+        text-indent: 0;
+        display: inline-block;
+    }
+
+    /* === IAT 界面布局 (Flexbox 垂直居中) === */
+    .iat-wrap { 
+        width: 90vw; 
+        height: 100vh; 
+        margin: 0 auto; 
+        display: flex;          
+        flex-direction: column; 
+    }
+    
+    /* 1. 顶部标签 (固定) */
+    .iat-top { 
+        flex: 0 0 auto; 
+        display: flex; 
+        justify-content: space-between; 
+        font-size: 28px; 
+        font-weight: 700; 
+        color: #000;
+        padding-top: 40px; 
+        padding-bottom: 10px;
+    }
+    
+    .iat-label { width: 45%; line-height: 1.3; }
+    .iat-label.left { text-align: left; }
+    .iat-label.right { text-align: right; }
+    
+    .top-key {
+        font-size: 32px;
+        display: inline; 
+        margin-right: 5px; 
+        color: #333;
+    }
+
+    /* 2. 中间区域 (垂直居中) */
+    .iat-main-area {
+        flex: 1; 
+        display: flex;
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center;     
+        margin-top: -60px;       
+    }
+    
+    /* 刺激词 */
+    .iat-center { 
+        text-align: center; 
+        font-size: 64px; 
+        font-weight: 700; 
+        color: #000; 
+    }
+    
+    /* 红叉 */
+    .err-box {
+        text-align: center;
+        height: 60px; 
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .err { 
+        font-size: 64px; 
+        font-weight: 900; 
+        color: #c11; 
+        line-height: 1;
+    }
+
+    /* 底部提示 */
+    .iat-hint {
+        text-align: center; 
+        font-size: 18px; 
+        color: #000;
+        visibility: hidden; 
+        height: 30px;
+    }
+    .iat-hint.visible { visibility: visible; }
+
+    /* 注视点 */
+    .fix { 
+        position: absolute; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        font-size: 60px; 
+    }
+
+    /* 输入框样式 */
+    .jspsych-survey-text-question input {
+        font-size: 24px;
+        padding: 10px;
+        border: 2px solid #333;
+        border-radius: 8px;
+        text-align: center;
+    }
+  </style>
+</head>
+<body></body>
+
+<script>
+/* =========================
+   1. 随机化设置
+========================= */
+const jsPsych = initJsPsych();
+
+// 0=相容先, 1=不相容先 (已修改为固定全为 1)
+const condition = 0;
+
+/* =========================================================
+   2. 自定义插件：IAT Corrected (保持原样)
+========================================================= */
+class IatCorrectedPlugin {
+  constructor(jsPsych) {
+    this.jsPsych = jsPsych;
+  }
+
+  trial(display_element, trial) {
+    const fixation_ms = 250;
+    const correct_key = trial.correct_key;
+
+    display_element.innerHTML = `<div class="fix">+</div>`;
+
+    this.jsPsych.pluginAPI.setTimeout(() => {
+      
+      const startTime = performance.now(); // 刺激呈现的绝对时间戳
+
+      const buildHtml = (showError) => `
+        <div class="iat-wrap">
+          <div class="iat-top">
+            <div class="iat-label left">${trial.left_label}</div>
+            <div class="iat-label right">${trial.right_label}</div>
+          </div>
+          
+          <div class="iat-main-area">
+              <div class="iat-center">${trial.stimulus}</div>
+              <div class="err-box">
+                ${showError ? '<div class="err">X</div>' : ''}
+              </div>
+              <div class="iat-hint ${showError ? 'visible' : ''}">
+                 请按另一个键更正错误
+              </div>
+          </div>
+        </div>
+      `;
+
+      display_element.innerHTML = buildHtml(false);
+
+      const afterFirstResponse = (info) => {
+        if (this.jsPsych.pluginAPI.compareKeys(info.key, correct_key)) {
+          endTrial({
+            rt: info.rt,              
+            first_rt: info.rt,        
+            correction_rt: null,      
+            wrong: false
+          });
+        } else {
+          display_element.innerHTML = buildHtml(true); 
+          
+          this.jsPsych.pluginAPI.getKeyboardResponse({
+            callback_function: (info2) => {
+              endTrial({
+                rt: info2.rt,         
+                first_rt: info.rt,    
+                correction_rt: info2.rt, 
+                wrong: true
+              });
+            },
+            valid_responses: [correct_key], 
+            rt_method: 'performance',
+            persist: false,
+            allow_held_key: false
+          });
+        }
+      };
+
+      const endTrial = (dataObj) => {
+        const total_duration = performance.now() - startTime;
+        display_element.innerHTML = '';
+        this.jsPsych.finishTrial({
+          rt: dataObj.rt,                     
+          correction_rt: dataObj.correction_rt, 
+          first_rt: dataObj.first_rt,         
+          total_time_from_start: total_duration, 
+          correct: !dataObj.wrong,            
+          response: dataObj.wrong ? 'correction' : 'correct', 
+          stimulus: trial.stimulus,
+          block: trial.block,
+          trial_kind: trial.trial_kind,
+          subcat: trial.subcat,
+          participant_id: jsPsych.data.get().first().participant_id,
+          condition: condition === 0 ? "Compatible-First" : "Incompatible-First"
+        });
+      };
+
+      this.jsPsych.pluginAPI.getKeyboardResponse({
+        callback_function: afterFirstResponse,
+        valid_responses: ['f', 'j'],
+        rt_method: 'performance',
+        persist: false,
+        allow_held_key: false
+      });
+
+    }, fixation_ms);
+  }
+}
+IatCorrectedPlugin.info = {
+  name: "iat-corrected",
+  parameters: {
+    stimulus: { type: jsPsychModule.ParameterType.HTML_STRING, default: undefined },
+    left_label: { type: jsPsychModule.ParameterType.HTML_STRING, default: '' },
+    right_label: { type: jsPsychModule.ParameterType.HTML_STRING, default: '' },
+    correct_key: { type: jsPsychModule.ParameterType.KEY, default: undefined },
+    block: { type: jsPsychModule.ParameterType.STRING, default: '' },
+    trial_kind: { type: jsPsychModule.ParameterType.STRING, default: '' },
+    subcat: { type: jsPsychModule.ParameterType.STRING, default: '' }
+  }
+};
+
+/* =========================
+   3. 辅助函数 (已重写：精准平衡 & 限制同键)
+========================= */
+function page(html){
+  return {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `<div class="page">${html}</div>`,
+    choices: [' ']
+  };
+}
+function box(text) { return `<span class="kbd">${text}</span>`; }
+function redOr() { return `<span class="red-or">或</span>`; }
+
+function shuffle(array) {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex != 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
+// 【修改】精准数量抽样：比如要10个AI词汇，就会均匀抽取补充，绝对保证数量
+function sampleExactItems(items, count) {
+  let result = [];
+  let pool =[];
+  while(result.length < count) {
+    if(pool.length === 0) pool = shuffle([...items]);
+    result.push(pool.pop());
+  }
+  return result;
+}
+
+// 【修改】单任务序列生成：限制最多只能连续3次按同一个键
+function shuffleNoMoreThan(array, maxConsecutive) {
+  let bestArr = array;
+  for (let attempt = 0; attempt < 500; attempt++) {
+    let arr = shuffle([...array]);
+    let valid = true;
+    let count = 1;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].correct_key === arr[i - 1].correct_key) {
+        count++;
+        if (count > maxConsecutive) {
+          valid = false;
+          break;
+        }
+      } else {
+        count = 1;
+      }
+    }
+    if (valid) return arr;
+    bestArr = arr;
+  }
+  return bestArr;
+}
+
+function downloadCSV(csv, filename) {
+  const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+/* =========================
+   4. 词汇材料 & 键位逻辑
+========================= */
+const words_AI =['自动评分','智能白板','AI备课','AI授课','人机交互','AI个性化推荐'];
+const words_TR =['人工评分','粉笔黑板','人工备课','真人授课','师生互动','统一教材'];
+const words_Pos =['高效的','专注的','轻松的','方便的','省时的','省力的','容易的','有序的'];
+const words_Neg =['低效的','分心的','吃力的','麻烦的','耗时的','费力的','复杂的','混乱的'];
+
+const key_Pos = 'f';
+const key_Neg = 'j';
+let key_AI_B1, key_TR_B1;
+let txt_Left_B1, txt_Right_B1; 
+
+if (condition === 0) {
+  key_AI_B1 = 'f'; key_TR_B1 = 'j';
+  txt_Left_B1 = "AI教学"; txt_Right_B1 = "传统教学";
+} else {
+  key_AI_B1 = 'j'; key_TR_B1 = 'f';
+  txt_Left_B1 = "传统教学"; txt_Right_B1 = "AI教学";
+}
+
+const key_AI_B5 = (key_AI_B1 === 'f') ? 'j' : 'f';
+const key_TR_B5 = (key_TR_B1 === 'f') ? 'j' : 'f';
+const txt_Left_B5 = (txt_Left_B1 === "AI教学") ? "传统教学" : "AI教学";
+const txt_Right_B5 = (txt_Right_B1 === "AI教学") ? "传统教学" : "AI教学";
+
+/* =========================
+   5. 试次生成器 (已重写：满足严格要求)
+========================= */
+function makeLabel(keyChar, text) {
+  return `<span class="top-key">${keyChar.toUpperCase()}</span>：${text}`;
+}
+
+function createTrialObj(word, subcat, kind, correctKey, leftHtml, rightHtml, blockName) {
+  return {
+    stimulus: word, subcat: subcat, trial_kind: kind, correct_key: correctKey,
+    left_label: leftHtml, right_label: rightHtml, block: blockName
+  };
+}
+
+// Block 1 (单概念：各10题)
+function getTrials_B1() {
+  const l = makeLabel("F", txt_Left_B1);
+  const r = makeLabel("J", txt_Right_B1);
+  const cAI = sampleExactItems(words_AI, 10).map(w => createTrialObj(w, "AI", "concept", key_AI_B1, l, r, "B1_Concept"));
+  const cTR = sampleExactItems(words_TR, 10).map(w => createTrialObj(w, "TRAD", "concept", key_TR_B1, l, r, "B1_Concept"));
+  return shuffleNoMoreThan([...cAI, ...cTR], 3); // 限制连续同键不超过3次
+}
+
+// Block 2 (单属性：各10题)
+function getTrials_B2() {
+  const l = makeLabel("F", "积极词汇");
+  const r = makeLabel("J", "消极词汇");
+  const aPos = sampleExactItems(words_Pos, 10).map(w => createTrialObj(w, "POS", "attr", key_Pos, l, r, "B2_Attr"));
+  const aNeg = sampleExactItems(words_Neg, 10).map(w => createTrialObj(w, "NEG", "attr", key_Neg, l, r, "B2_Attr"));
+  return shuffleNoMoreThan([...aPos, ...aNeg], 3); // 限制连续同键不超过3次
+}
+
+// 【重中之重】联合阶段：精准各取 1/4，且严格交替 + 限制同键
+function getTrials_Combined(phase, nTrials, blockName) {
+  const curKeyAI = (phase === 1) ? key_AI_B1 : key_AI_B5;
+  const curKeyTR = (phase === 1) ? key_TR_B1 : key_TR_B5;
+  const isAIonF  = (curKeyAI === 'f');
+
+  let leftTxt, rightTxt;
+  if (isAIonF) {
+    leftTxt = "AI教学 或 积极词汇"; rightTxt = "传统教学 或 消极词汇";
+  } else {
+    leftTxt = "传统教学 或 积极词汇"; rightTxt = "AI教学 或 消极词汇";
+  }
+  const l = makeLabel("F", leftTxt);
+  const r = makeLabel("J", rightTxt);
+
+  // 精准分配：如果总量40，则各取10；总量20，则各取5。
+  const quarter = nTrials / 4;
+  const poolAI = sampleExactItems(words_AI, quarter).map(w => createTrialObj(w, "AI", "combined", curKeyAI, l, r, blockName));
+  const poolTR = sampleExactItems(words_TR, quarter).map(w => createTrialObj(w, "TRAD", "combined", curKeyTR, l, r, blockName));
+  const poolPos = sampleExactItems(words_Pos, quarter).map(w => createTrialObj(w, "POS", "combined", key_Pos, l, r, blockName));
+  const poolNeg = sampleExactItems(words_Neg, quarter).map(w => createTrialObj(w, "NEG", "combined", key_Neg, l, r, blockName));
+
+  let bestSeq =[];
+  // 尝试生成同时满足【严格交替】和【最多连续3次同键】的序列
+  for(let attempt = 0; attempt < 500; attempt++) {
+    let seq =[];
+    let concepts = shuffle([...poolAI, ...poolTR]);
+    let attrs = shuffle([...poolPos, ...poolNeg]);
+    
+    // 随机决定此试次第一题是概念还是属性
+    let conceptFirst = (Math.random() < 0.5);
+    
+    let valid = true;
+    let keyCount = 0;
+    let lastKey = null;
+
+    for(let i = 0; i < nTrials; i++) {
+       let isConceptTurn = conceptFirst ? (i % 2 === 0) : (i % 2 !== 0);
+       let item = isConceptTurn ? concepts[Math.floor(i/2)] : attrs[Math.floor(i/2)];
+       seq.push(item);
+
+       if (item.correct_key === lastKey) {
+         keyCount++;
+         if (keyCount > 3) { // 发现连续同键超过3次，打回重做
+           valid = false;
+           break;
+         }
+       } else {
+         keyCount = 1;
+         lastKey = item.correct_key;
+       }
+    }
+    if (valid) return seq; 
+    bestSeq = seq; // 保底备份
+  }
+  return bestSeq;
+}
+
+// Block 5 (反转概念：各10题)
+function getTrials_B5() {
+  const l = makeLabel("F", txt_Left_B5);
+  const r = makeLabel("J", txt_Right_B5);
+  const cAI = sampleExactItems(words_AI, 10).map(w => createTrialObj(w, "AI", "concept", key_AI_B5, l, r, "B5_Reverse"));
+  const cTR = sampleExactItems(words_TR, 10).map(w => createTrialObj(w, "TRAD", "concept", key_TR_B5, l, r, "B5_Reverse"));
+  return shuffleNoMoreThan([...cAI, ...cTR], 3); // 限制连续同键不超过3次
+}
+
+
+/* =========================
+   6. Timeline
+========================= */
+let timeline =[];
+
+const enter_id = {
+  type: jsPsychSurveyText,
+  questions:[
+    {prompt: "请输入您的编号 (Participant ID):", required: true, name: 'pid'}
+  ],
+  on_finish: function(data){
+    const pid = data.response.pid;
+    jsPsych.data.addProperties({
+      participant_id: pid,
+      condition: condition === 0 ? "Compatible-First" : "Incompatible-First"
+    });
+  }
+};
+timeline.push(enter_id);
+
+const enter_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+  message: `
+    <div class="page" style="text-align: center;">
+      <p>为了保证练习数据的准确性，本练习需要在<b>全屏模式</b>下进行。</p>
+      
+      <div style="background-color: #ffeaea; border: 2px solid #d00; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #d00; font-size: 24px; margin-top: 0;"><b>⚠️ 核心准备工作 ⚠️</b></p>
+          <p style="font-weight: bold; font-size: 20px;">请务必现在将您的键盘切换为【英文输入状态】<br>（或关闭中文拼音输入法）</p>
+          <p style="color: #555; font-size: 16px;">如果开启了中文输入法，您按下的按键将被系统拦截，导致练习卡住无法进行！</p>
+      </div>
+
+      <p>在练习过程中，请<b>不要切换到其他窗口</b>或<b>按 ESC 退出全屏</b>。<br>系统会在后台自动记录您的切屏行为，若切屏次数过多，您的数据将作废。</p>
+      <p>确认已切换为英文键盘后，请点击下方按钮进入全屏模式并开始练习。</p>
+    </div>
+  `,
+  button_label: '已切换英文输入法，进入全屏'
+};
+timeline.push(enter_fullscreen);
+
+const keyboard_test_f = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page" style="text-align: center;">
+      <h2>⌨️ 键盘状态测试 ⌨️</h2>
+      <p>为了确保您的键盘已成功切换为英文输入法，<br>请在键盘上按下字母 <span class="kbd">F</span> 键。</p>
+      <p style="color: #888; font-size: 16px;">(如果按下没有反应，说明您仍在中文输入法状态，请按 Shift 键切换)</p>
+    </div>
+  `,
+  choices:['f', 'F']
+};
+
+const keyboard_test_j = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page" style="text-align: center;">
+      <h2>⌨️ 键盘状态测试 ⌨️</h2>
+      <p>非常好！现在请按下字母 <span class="kbd">J</span> 键。</p>
+      <p style="color: #888; font-size: 16px;">(测试通过后将正式进入练习)</p>
+    </div>
+  `,
+  choices: ['j', 'J']
+};
+
+timeline.push(keyboard_test_f);
+timeline.push(keyboard_test_j);
+
+timeline.push(page(`
+  <p>欢迎参加本次练习！</p>
+  <p>这是一个词汇分类速度练习，在接下来的练习中，你将完成一系列的词汇分类任务，请根据每一部分的具体指导语认真完成。</p>
+  <p>请按空格键开始练习。</p>
+`));
+
+// Block 1
+timeline.push(page(`
+  <p>在接下来的练习中，屏幕中央将呈现一系列的词汇。请判断词汇的种类，如果呈现的是${box(txt_Left_B1)}的词汇请按${box('F')}键，如果是${box(txt_Right_B1)}的词汇请按${box('J')}键，请又快又准地做出反应！</p>
+  <p>如果反应错误，屏幕上会出现X，请按另一个键更正错误。</p>
+  <p>明白上述指导语之后，请按空格键开始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B1()
+});
+
+// Block 2
+timeline.push(page(`
+  <p>在接下来的练习部分，屏幕中央将会呈现一系列的词汇。请判断词汇的种类，如果呈现的是${box('积极词汇')}请按${box('F')}键，如果呈现的是${box('消极词汇')}请按${box('J')}键，请又快又准地做出反应！</p>
+  <p>如果反应错误，屏幕上会出现X，请按另一个键更正错误。</p>
+  <p>明白上述指导语之后，请按空格键开始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B2()
+});
+
+function getCombinedInstText(phase) {
+  const curKeyAI = (phase === 1) ? key_AI_B1 : key_AI_B5;
+  const leftConcept = (curKeyAI === 'f') ? "AI教学" : "传统教学";
+  const rightConcept = (curKeyAI === 'f') ? "传统教学" : "AI教学";
+  
+  const leftStr = box(leftConcept) + redOr() + box('积极词汇');
+  const rightStr = box(rightConcept) + redOr() + box('消极词汇');
+
+  return `
+    <p>在接下来的练习中，屏幕中央将会呈现一系列的词汇。请判断词汇的种类，如果呈现的是${leftStr}请按${box('F')}键，如果呈现的是${rightStr}请按${box('J')}键，请又快又准地做出反应。</p>
+    <p>如果反应错误，屏幕上会出现X，请按另一个键更正错误。</p>
+  `;
+}
+
+// Block 3
+timeline.push(page(getCombinedInstText(1) + `<p>明白上述指导语之后，请按空格键开始。</p>`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(1, 20, "B3_Combined_Practice")
+});
+
+// Block 4
+timeline.push(page(getCombinedInstText(1) + `
+  <p>请注意本部分是正式练习，请认真完成。</p>
+  <p>明白上述指导语之后，请按空格键开始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(1, 40, "B4_Combined_Test")
+});
+
+// Block 5
+timeline.push(page(`
+  <p>在接下来的练习部分，屏幕中央将会呈现一系列的词汇。请判断词词汇的种类，如果呈现的是${box(txt_Left_B5)}词汇请按${box('F')}键，如果呈现的是${box(txt_Right_B5)}词汇请按${box('J')}键，请又快又准地做出反应！</p>
+  <p>如果反应错误，屏幕上会出现X，请按另一个键更正错误。</p>
+  <p>明白上述指导语之后，请按空格键开始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_B5()
+});
+
+// Block 6
+timeline.push(page(getCombinedInstText(2) + `<p>明白上述指导语之后，请按空格键开始。</p>`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(2, 20, "B6_Combined_Practice")
+});
+
+// Block 7
+timeline.push(page(getCombinedInstText(2) + `
+  <p>请注意本部分是正式练习，请认真完成。</p>
+  <p>明白上述指导语之后，请按空格键开始。</p>
+`));
+
+timeline.push({
+  timeline:[{
+    type: IatCorrectedPlugin,
+    stimulus: jsPsych.timelineVariable('stimulus'),
+    left_label: jsPsych.timelineVariable('left_label'),
+    right_label: jsPsych.timelineVariable('right_label'),
+    correct_key: jsPsych.timelineVariable('correct_key'),
+    block: jsPsych.timelineVariable('block'),
+    trial_kind: jsPsych.timelineVariable('trial_kind'),
+    subcat: jsPsych.timelineVariable('subcat')
+  }],
+  timeline_variables: getTrials_Combined(2, 40, "B7_Combined_Test")
+});
+
+const exit_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: false,
+  delay_after: 0
+};
+timeline.push(exit_fullscreen);
+
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page">
+      <p><b>练习结束</b></p>
+      <p>感谢您的参与。</p>
+      <p class="muted">按 <span class="kbd">空格</span> 下载数据。</p>
+    </div>
+  `,
+  choices: [' '],
+  on_finish: () => {
+    const interactionData = jsPsych.data.getInteractionData();
+    const blurCount = interactionData.filter({event: 'blur'}).count();
+    const exitFsCount = interactionData.filter({event: 'fullscreenexit'}).count();
+    
+    jsPsych.data.addProperties({
+      blur_count: blurCount,
+      exit_fullscreen_count: exitFsCount
+    });
+
+    const data = jsPsych.data.get();
+    const pid = data.first().participant_id || "unknown";
+    const csv = data.csv();
+    downloadCSV(csv, `IAT_${pid}_cond${condition}.csv`);
+  }
+});
+
+jsPsych.run(timeline);
+</script>
+</html>
